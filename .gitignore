@@ -1,0 +1,23 @@
+# Only upload runnable project code (backend + frontend)
+/*
+!/.gitignore
+!/README.md
+!/flashmart-backend/
+!/flashmart-frontend/
+
+# Secrets & local config
+**/application.yml
+.env
+.env.*
+
+# Build / deps
+**/target/
+**/node_modules/
+**/.idea/
+**/*.iml
+.DS_Store
+Thumbs.db
+
+# Frontend build output (run `npm run build` in flashmart-frontend)
+flashmart-backend/src/main/resources/static/assets/
+flashmart-backend/src/main/resources/static/index.html
