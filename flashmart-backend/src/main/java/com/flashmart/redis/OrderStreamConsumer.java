@@ -1,5 +1,6 @@
 package com.flashmart.redis;
 
+import com.flashmart.service.OrderPersistenceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.Consumer;
@@ -13,11 +14,10 @@ import org.springframework.stereotype.Component;
 
 import java.net.InetAddress;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-/**
- * Consumes order placement events from Redis Streams. Disabled when Redis does not support Streams.
- */
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -28,6 +28,7 @@ public class OrderStreamConsumer {
 
     private final RedisTemplate<String, String> streamRedisTemplate;
     private final StreamFeatureGate streamFeatureGate;
+    private final OrderPersistenceService orderPersistenceService;
 
     private final String consumerName = safeHost();
 
@@ -54,7 +55,14 @@ public class OrderStreamConsumer {
                 return;
             }
             for (MapRecord<String, Object, Object> rec : records) {
-                log.info("Order stream event id={} body={}", rec.getId(), rec.getValue());
+                Map<String, String> fields = toStringMap(rec.getValue());
+                String type = fields.get("type");
+                if (OrderStreamPublisher.TYPE_CREATE_ORDER.equals(type)) {
+                    orderPersistenceService.persistFromStreamMessage(fields);
+                    log.info("Stream CREATE_ORDER processed correlationId={}", fields.get("correlationId"));
+                } else {
+                    log.info("Order stream event id={} body={}", rec.getId(), fields);
+                }
                 streamRedisTemplate.opsForStream().acknowledge(CONSUMER_GROUP, rec);
             }
         } catch (Exception ex) {
@@ -63,6 +71,15 @@ public class OrderStreamConsumer {
                 streamFeatureGate.disable();
             }
         }
+    }
+
+    private static Map<String, String> toStringMap(Map<Object, Object> raw) {
+        Map<String, String> out = new HashMap<>();
+        if (raw == null) {
+            return out;
+        }
+        raw.forEach((k, v) -> out.put(String.valueOf(k), v == null ? "" : String.valueOf(v)));
+        return out;
     }
 
     private static boolean isStreamsUnsupported(Throwable ex) {

@@ -47,6 +47,12 @@ const routes = [
     component: () => import("@/views/ProfileView.vue"),
     meta: { requiresAuth: true },
   },
+  {
+    path: "/admin/flash-sales",
+    name: "admin-flash-sales",
+    component: () => import("@/views/AdminFlashSalesView.vue"),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
 ];
 
 const router = createRouter({
@@ -63,6 +69,9 @@ router.beforeEach((to) => {
     return { name: "login", query: { redirect: to.fullPath } };
   }
   if (to.meta.guestOnly && auth.isLoggedIn) {
+    return { name: "home" };
+  }
+  if (to.meta.requiresAdmin && !auth.isAdmin) {
     return { name: "home" };
   }
   return true;

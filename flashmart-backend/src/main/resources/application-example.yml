@@ -30,7 +30,12 @@ flashmart:
     token-header: Authorization
     token-prefix: "Bearer "
     redis-key-prefix: "flashmart:session:"
+    user-session-prefix: "flashmart:user-session:"
+    verification-prefix: "flashmart:verify:"
     token-ttl-hours: 168
+    verification-code-ttl-minutes: 5
+    expose-verification-code-in-response: true
   streams:
     enabled: true
     poll-ms: 800
+    order-wait-ms: 5000

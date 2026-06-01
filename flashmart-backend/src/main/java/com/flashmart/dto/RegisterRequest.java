@@ -6,9 +6,11 @@ import lombok.Data;
 
 @Data
 public class RegisterRequest {
-    @NotBlank
     @Size(max = 32)
     private String phone;
+
+    @Size(max = 128)
+    private String email;
 
     @NotBlank
     @Size(min = 6, max = 64)
@@ -16,4 +18,8 @@ public class RegisterRequest {
 
     @Size(max = 64)
     private String nickname;
+
+    @NotBlank
+    @Size(min = 4, max = 8)
+    private String verificationCode;
 }

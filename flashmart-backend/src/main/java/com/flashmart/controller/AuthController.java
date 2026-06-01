@@ -4,6 +4,8 @@ import com.flashmart.common.ApiResult;
 import com.flashmart.dto.LoginRequest;
 import com.flashmart.dto.LoginResponse;
 import com.flashmart.dto.RegisterRequest;
+import com.flashmart.dto.SendVerificationCodeRequest;
+import com.flashmart.dto.VerificationCodeResponse;
 import com.flashmart.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,10 +21,14 @@ public class AuthController {
 
     private final AuthService authService;
 
+    @PostMapping("/verification-code")
+    public ApiResult<VerificationCodeResponse> sendVerificationCode(@Valid @RequestBody SendVerificationCodeRequest req) {
+        return ApiResult.ok(authService.sendRegisterVerificationCode(req));
+    }
+
     @PostMapping("/register")
-    public ApiResult<Void> register(@Valid @RequestBody RegisterRequest req) {
-        authService.register(req);
-        return ApiResult.ok();
+    public ApiResult<LoginResponse> register(@Valid @RequestBody RegisterRequest req) {
+        return ApiResult.ok(authService.register(req));
     }
 
     @PostMapping("/login")

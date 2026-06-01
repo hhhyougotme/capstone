@@ -13,7 +13,12 @@ Implements features aligned with the thesis: registration/login, merchant browse
 | **Redisson** distributed locks (coupon claim + flash order) | Yes (`CouponClaimService`, `OrderService`) |
 | **Redis Streams** for post-order events + scheduled consumer (at-least-once style) | Yes when **Redis ≥ 5**; **auto-disabled** on Redis 3.x (`unknown command XADD`) or set `flashmart.streams.enabled=false` |
 | MySQL remains system of record | Yes (orders/claims still persisted in DB) |
-| Delayed double-delete cache invalidation, full RabbitMQ, multi-node Nginx lab | **Not** implemented (thesis narrative may describe broader deployment; this repo is a focused prototype). |
+| Registration **verification codes** (Redis + TTL, demo code in API when enabled) | Yes (`VerificationCodeService`) |
+| Login by **phone or email**; **single active session** per user | Yes (`AuthService`, `SessionService`) |
+| **Admin** flash-sale create/update | Yes (`/api/admin/flash-sales`) |
+| Stream **consumer persists orders**; sync fallback when Redis &lt; 5 | Yes (`OrderStreamConsumer`, `OrderPersistenceService`, `StreamFeatureGate`) |
+| Delayed double-delete cache invalidation | Yes (`DelayedDoubleDeleteEvictor`) |
+| Full RabbitMQ, multi-node Nginx lab | **Not** implemented (thesis narrative may describe broader deployment; this repo is a focused prototype). |
 
 ## Prerequisites
 
@@ -57,13 +62,7 @@ Create schema and seed data:
 mysql -u root -p < src/main/resources/schema.sql
 ```
 
-If you already had an older database **without** the `product` table / `product_id` columns, or you see **`Unknown column 'product_id'`** on startup, run the incremental script once:
-
-```bash
-mysql -u root -p flashmart < src/main/resources/sql/migration_add_product.sql
-```
-
-Edit `src/main/resources/application.yml` if your MySQL user/password is not `root` / `root`.
+Incremental scripts for older DBs: `src/main/resources/sql/`. Edit `application.yml` for your MySQL password.
 
 ## Run
 
@@ -90,12 +89,17 @@ npm run dev
 
 **仅后端 jar / 一体化访问：** 先在 `flashmart-frontend` 执行 `npm run build`，再启动 Spring Boot，访问 **http://localhost:8080/** 即可。登录后 token 存 `localStorage`，请求自动带 `Authorization: Bearer …`。
 
+**Demo admin:** phone `13800000000` / password `admin123`.
+
 ## API overview
 
 | Method | Path | Auth |
 |--------|------|------|
-| POST | `/api/auth/register` | No |
-| POST | `/api/auth/login` | No → returns `token` |
+| POST | `/api/auth/verification-code` | No — body `{ "phone" }` or `{ "email" }`; demo returns `demoCode` when `expose-verification-code-in-response: true` |
+| POST | `/api/auth/register` | No — phone **or** email + `verificationCode` + password |
+| POST | `/api/auth/login` | No — body `{ "account": "phone or email", "password" }` → `token`, `role` |
+| POST | `/api/admin/flash-sales` | Bearer **admin** — create event |
+| PUT | `/api/admin/flash-sales/{id}` | Bearer **admin** — update event |
 | GET | `/api/merchant-types` | No |
 | GET | `/api/merchants?page=1&pageSize=10&merchantTypeId=` | No（分页列表，Redis 缓存 + 重建互斥锁） |
 | GET | `/api/merchants/{id}` | No（含 `serviceDescription`，详情缓存 + 重建互斥锁） |
@@ -107,15 +111,20 @@ npm run dev
 | GET | `/api/flash-sales` | No（活动列表，含可选关联商品名称/标价） |
 | POST | `/api/coupons/{couponId}/claim` | `Authorization: Bearer <token>` |
 | GET | `/api/me/coupon-claims` | Bearer |
-| POST | `/api/flash-sales/{eventId}/orders` | Bearer (JSON body optional `{"amount":1.00}`) |
+| POST | `/api/products/{productId}/orders` | Bearer — body optional `{ "quantity": 1 }`，普通商品下单 |
+| POST | `/api/flash-sales/{eventId}/orders` | Bearer — returns `{ status, message, orderId? }` (`SUCCESS` / `FAILED`; stream path polls up to `order-wait-ms`) |
 | GET | `/api/me/orders` | Bearer |
 
 ### Quick curl flow (after seed)
 
 ```bash
-curl -s -X POST http://localhost:8080/api/auth/register -H "Content-Type: application/json" -d "{\"phone\":\"13800000001\",\"password\":\"secret12\",\"nickname\":\"u1\"}"
+# 1) verification code (demo returns code in JSON)
+curl -s -X POST http://localhost:8080/api/auth/verification-code -H "Content-Type: application/json" -d "{\"phone\":\"13800000002\"}"
 
-curl -s -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/json" -d "{\"phone\":\"13800000001\",\"password\":\"secret12\"}"
+# 2) register with code from step 1
+curl -s -X POST http://localhost:8080/api/auth/register -H "Content-Type: application/json" -d "{\"phone\":\"13800000002\",\"password\":\"secret12\",\"nickname\":\"u2\",\"verificationCode\":\"123456\"}"
+
+curl -s -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/json" -d "{\"account\":\"13800000002\",\"password\":\"secret12\"}"
 # copy token from response
 
 curl -s http://localhost:8080/api/flash-sales

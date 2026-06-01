@@ -7,7 +7,7 @@ const auth = useAuthStore();
 const route = useRoute();
 const router = useRouter();
 
-const phone = ref("");
+const account = ref("");
 const password = ref("");
 const err = ref("");
 const loading = ref(false);
@@ -16,7 +16,7 @@ async function submit() {
   err.value = "";
   loading.value = true;
   try {
-    await auth.login(phone.value.trim(), password.value);
+    await auth.login(account.value.trim(), password.value);
     const redirect = route.query.redirect;
     router.push(typeof redirect === "string" ? redirect : "/");
   } catch (e) {
@@ -31,11 +31,11 @@ async function submit() {
   <div class="page-inner narrow">
     <div class="card form-card">
       <h2>登录</h2>
-      <p class="muted">使用注册时的手机号与密码</p>
+      <p class="muted">使用注册时的手机号或邮箱</p>
       <form class="form" @submit.prevent="submit">
         <label>
-          <span>手机号</span>
-          <input v-model="phone" class="input" type="text" autocomplete="tel" required />
+          <span>手机号 / 邮箱</span>
+          <input v-model="account" class="input" type="text" autocomplete="username" required />
         </label>
         <label>
           <span>密码</span>
@@ -56,6 +56,7 @@ async function submit() {
         还没有账号？
         <RouterLink to="/register">去注册</RouterLink>
       </p>
+      <p class="foot muted small-hint">管理员演示：13800000000 / admin123</p>
     </div>
   </div>
 </template>
@@ -67,9 +68,6 @@ async function submit() {
 .form-card {
   padding: 1.75rem;
   margin-top: 1rem;
-}
-.form-card h2 {
-  margin: 0 0 0.25rem;
 }
 .form {
   display: flex;
@@ -88,7 +86,10 @@ label span {
   margin-top: 0.25rem;
 }
 .foot {
-  margin-top: 1.25rem;
+  margin-top: 1rem;
   text-align: center;
+}
+.small-hint {
+  font-size: 0.8rem;
 }
 </style>

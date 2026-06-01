@@ -16,13 +16,20 @@ public class SessionService {
     private final StringRedisTemplate stringRedisTemplate;
     private final AuthProperties authProperties;
 
+    /**
+     * Creates a session and invalidates any previous session for the same user (concurrent login control).
+     */
     public String createSession(Long userId) {
+        String userSessionKey = authProperties.getUserSessionPrefix() + userId;
+        String oldToken = stringRedisTemplate.opsForValue().get(userSessionKey);
+        if (oldToken != null && !oldToken.isBlank()) {
+            stringRedisTemplate.delete(authProperties.getRedisKeyPrefix() + oldToken.trim());
+        }
+
         String token = UUID.randomUUID().toString().replace("-", "");
-        String key = authProperties.getRedisKeyPrefix() + token;
-        stringRedisTemplate.opsForValue().set(
-                key,
-                String.valueOf(userId),
-                Duration.ofHours(authProperties.getTokenTtlHours()));
+        Duration ttl = Duration.ofHours(authProperties.getTokenTtlHours());
+        stringRedisTemplate.opsForValue().set(authProperties.getRedisKeyPrefix() + token, String.valueOf(userId), ttl);
+        stringRedisTemplate.opsForValue().set(userSessionKey, token, ttl);
         return token;
     }
 

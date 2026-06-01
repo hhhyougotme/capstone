@@ -21,6 +21,7 @@ function onLogout() {
         <RouterLink to="/merchants">商家</RouterLink>
         <RouterLink to="/flash-sales">闪购</RouterLink>
         <RouterLink v-if="auth.isLoggedIn" to="/profile">我的</RouterLink>
+        <RouterLink v-if="auth.isAdmin" to="/admin/flash-sales">管理闪购</RouterLink>
         <template v-if="!auth.isLoggedIn">
           <RouterLink to="/login">登录</RouterLink>
           <RouterLink to="/register" class="nav-cta">注册</RouterLink>

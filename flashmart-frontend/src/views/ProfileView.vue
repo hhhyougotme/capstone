@@ -63,12 +63,14 @@ onMounted(load);
     <template v-else>
       <section v-show="tab === 'orders'">
         <ul v-if="orders.length" class="list">
-          <li v-for="o in orders" :key="o.id" class="card row">
+          <li v-for="(o, index) in orders" :key="o.id" class="card row">
             <div>
-              <strong>订单 #{{ o.id }}</strong>
+              <strong>订单 #{{ orders.length - index }}</strong>
               <p class="muted small">
-                活动 {{ o.flashSaleEventId }} · 商户 {{ o.merchantId }}
-                <template v-if="o.productId"> · 商品 {{ o.productId }}</template>
+                <template v-if="o.flashSaleEventId">闪购活动 {{ o.flashSaleEventId }}</template>
+                <template v-else>商品订单</template>
+                · 商户 {{ o.merchantId }}
+                <template v-if="o.productId"> · 商品 #{{ o.productId }}</template>
                 · 状态 {{ o.status }}
               </p>
               <p class="muted small">金额 ¥{{ formatMoney(o.amount) }} · {{ formatDateTime(o.createTime) }}</p>

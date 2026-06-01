@@ -46,8 +46,13 @@ async function placeOrder(eventId) {
   }
   orderBusy.value = eventId;
   try {
-    await unwrap(client.post(`/flash-sales/${eventId}/orders`, body));
-    orderMsg.value = "下单成功";
+    const res = await unwrap(client.post(`/flash-sales/${eventId}/orders`, body));
+    if (res.status === "SUCCESS") {
+      orderMsg.value = "下单成功";
+      await load();
+    } else {
+      orderMsg.value = res.message || "下单失败";
+    }
   } catch (e) {
     orderMsg.value = e.message || "下单失败";
   } finally {

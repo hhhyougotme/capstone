@@ -14,7 +14,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BizException.class)
     public org.springframework.http.ResponseEntity<ApiResult<Void>> handleBiz(BizException e) {
-        HttpStatus status = e.getCode() == 401 ? HttpStatus.UNAUTHORIZED : HttpStatus.BAD_REQUEST;
+        HttpStatus status = switch (e.getCode()) {
+            case 401 -> HttpStatus.UNAUTHORIZED;
+            case 403 -> HttpStatus.FORBIDDEN;
+            default -> HttpStatus.BAD_REQUEST;
+        };
         return org.springframework.http.ResponseEntity.status(status)
                 .body(ApiResult.fail(e.getCode(), e.getMessage()));
     }

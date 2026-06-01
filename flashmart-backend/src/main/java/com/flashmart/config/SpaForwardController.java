@@ -15,7 +15,8 @@ public class SpaForwardController {
             "/merchants",
             "/products",
             "/flash-sales",
-            "/profile"
+            "/profile",
+            "/admin/flash-sales"
     })
     public String spaFlat() {
         return "forward:/index.html";

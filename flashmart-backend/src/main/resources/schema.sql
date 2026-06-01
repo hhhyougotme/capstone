@@ -50,13 +50,16 @@ CREATE TABLE product (
 
 CREATE TABLE `user` (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    phone VARCHAR(32) NOT NULL,
+    phone VARCHAR(32) DEFAULT NULL,
+    email VARCHAR(128) DEFAULT NULL,
     password_hash VARCHAR(255) NOT NULL,
     nickname VARCHAR(64) DEFAULT NULL,
     status TINYINT NOT NULL DEFAULT 1,
+    role TINYINT NOT NULL DEFAULT 0 COMMENT '0=user 1=admin',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uk_user_phone (phone)
+    UNIQUE KEY uk_user_phone (phone),
+    UNIQUE KEY uk_user_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE coupon (
@@ -104,7 +107,7 @@ CREATE TABLE `order` (
     user_id BIGINT NOT NULL,
     merchant_id BIGINT NOT NULL,
     product_id BIGINT DEFAULT NULL,
-    flash_sale_event_id BIGINT NOT NULL,
+    flash_sale_event_id BIGINT DEFAULT NULL COMMENT 'NULL for regular product orders',
     amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     status TINYINT NOT NULL DEFAULT 1,
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -136,3 +139,7 @@ INSERT INTO product (merchant_id, name, description, price, stock, status) VALUE
 
 INSERT INTO flash_sale_event (coupon_id, product_id, title, stock, begin_time, end_time, status) VALUES
     (2, 1, 'Lunch flash sale', 50, NOW(), DATE_ADD(NOW(), INTERVAL 7 DAY), 1);
+
+-- Admin demo: phone 13800000000 / password admin123
+INSERT INTO `user` (phone, email, password_hash, nickname, status, role) VALUES
+    ('13800000000', 'admin@flashmart.local', '$2a$10$oFdiiHBbQsXfmX.M6sPhk.3rcSkNCevbYp/i0g2rpyFNyi/ZGnRzS', 'Admin', 1, 1);

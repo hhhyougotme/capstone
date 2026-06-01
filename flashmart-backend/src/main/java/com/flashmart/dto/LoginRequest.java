@@ -5,8 +5,9 @@ import lombok.Data;
 
 @Data
 public class LoginRequest {
+    /** Phone number or email used at registration. */
     @NotBlank
-    private String phone;
+    private String account;
 
     @NotBlank
     private String password;
